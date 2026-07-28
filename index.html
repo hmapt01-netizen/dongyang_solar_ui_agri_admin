@@ -163,27 +163,44 @@
         <!-- Main Dashboard Widgets Grid -->
         <div class="grid-container">
           
-          <!-- Left: Regional Map / Pin View -->
-          <div class="natural-card col-8">
-            <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-map-location-dot" style="color:var(--sage-primary);"></i> 지역별 사업장 현황</span>
-              <div style="font-size:12px; font-weight:800; color:var(--text-muted);">
-                <span class="badge badge-success">● 정상 (4)</span>
-                <span class="badge badge-warning">● 관찰 (1)</span>
-              </div>
-            </div>
-            
-            <div class="map-canvas-box" style="position:relative; width:100%; height:400px; border-radius:14px; overflow:hidden; border:1.5px solid var(--border-color); background:#e6ede8;">
+          <!-- Left: Regional             <div class="map-canvas-box" style="position:relative; width:100%; height:400px; border-radius:14px; overflow:hidden; border:1.5px solid var(--border-color); background:#e6ede8;">
               
-              <!-- Real Leaflet Map Container -->
-              <div id="realLeafletMap" style="width:100%; height:100%; border-radius:14px; z-index:10;"></div>
+              <!-- Real Leaflet Map Container with Embedded Backdrop -->
+              <div id="realLeafletMap" style="width:100%; height:100%; border-radius:14px; z-index:10; position:relative; background:#e6ede8;">
+                <div id="localGeoBackdrop" style="position:absolute; inset:0; z-index:1; background:#e4eae5;">
+                  <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice">
+                    <rect width="800" height="400" fill="#e4eae5"/>
+                    <path d="M 0 110 Q 250 70 450 150 T 800 190" stroke="#93c5fd" stroke-width="24" fill="none" opacity="0.8"/>
+                    <path d="M 360 0 Q 390 160 420 400" stroke="#60a5fa" stroke-width="14" fill="none" opacity="0.7"/>
+                    <path d="M 120 230 Q 300 290 600 250" stroke="#a7f3d0" stroke-width="40" fill="none" opacity="0.4"/>
+                    <path d="M 50 400 Q 250 210 450 0" stroke="#f59e0b" stroke-width="6" fill="none" stroke-dasharray="8 4" opacity="0.8"/>
+                    <path d="M 0 250 Q 400 260 800 230" stroke="#ef4444" stroke-width="5" fill="none" opacity="0.7"/>
+                    <text x="240" y="230" font-weight="900" font-size="18" fill="#1d3324" opacity="0.45">강원특별자치도 원주시</text>
+                    <text x="520" y="160" font-weight="900" font-size="18" fill="#1d3324" opacity="0.45">횡성군</text>
+                    <text x="300" y="90" font-weight="900" font-size="18" fill="#1d3324" opacity="0.45">춘천시</text>
+                  </svg>
+                  <div class="map-pin green" style="top:48%; left:42%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12139')" title="[12139][원주] 온누리3,4 (정상 이행 - 콩/감자)"></div>
+                  <div class="map-pin green" style="top:42%; left:36%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12138')" title="[12138][원주] 온누리1,2 (정상 이행 - 옥수수/배추)"></div>
+                  <div class="map-pin orange" style="top:54%; left:48%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12140')" title="[12140][원주] 온누리5,6 (관찰 필요 - 벼/들깨)"></div>
+                  <div class="map-pin green" style="top:35%; left:62%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12141')" title="[12141][횡성] 청정영농형1호 (정상 이행 - 사과/인삼)"></div>
+                  <div class="map-pin green" style="top:22%; left:40%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12142')" title="[12142][춘천] 소양강 영농태양광 (정상 이행 - 블루베리/고추)"></div>
+                </div>
+              </div>
 
               <!-- Map Header & Map Mode Controls -->
               <div style="position:absolute; top:12px; left:16px; font-weight:900; font-size:13px; color:var(--sage-dark); background:rgba(255,255,255,0.95); padding:6px 14px; border-radius:8px; border:1px solid var(--border-color); z-index:999; box-shadow:0 2px 8px rgba(0,0,0,0.15); display:flex; align-items:center; gap:10px;">
-                <span>📍 강원특별자치도 영농형 태양광 실제 관제 지도</span>
+                <span>📍 강원특별자치도 영농형 태양광 관제 지도</span>
                 <div style="display:inline-flex; gap:4px; margin-left:8px;">
                   <button id="mapModeStreetBtn" onclick="DongyangAgriApp.switchMapTile('street')" style="padding:3px 8px; font-size:11px; font-weight:800; background:var(--sage-primary); color:#ffffff; border:none; border-radius:4px; cursor:pointer;">🗺️ 일반지도</button>
                   <button id="mapModeSatBtn" onclick="DongyangAgriApp.switchMapTile('satellite')" style="padding:3px 8px; font-size:11px; font-weight:800; background:#e2e8f0; color:#334155; border:none; border-radius:4px; cursor:pointer;">🛰️ 위성지도</button>
+                </div>
+              </div>
+
+              <!-- Map Footer Info -->
+              <div style="position:absolute; bottom:14px; right:16px; background:rgba(255,255,255,0.95); padding:6px 14px; border-radius:8px; font-size:11.5px; font-weight:800; border:1px solid var(--border-color); z-index:999; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                💡 실시간 지형/위성지도 상의 마커 핀을 클릭하시면 해당 사업장 상세 관제로 이동합니다.
+              </div>
+            </div>nt-size:11px; font-weight:800; background:#e2e8f0; color:#334155; border:none; border-radius:4px; cursor:pointer;">🛰️ 위성지도</button>
                 </div>
               </div>
 

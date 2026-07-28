@@ -118,15 +118,28 @@ const DongyangAgriApp = {
       this.leafletMap.removeLayer(this.activeTileLayer);
     }
 
-    let url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    // VWorld Official Korean National Spatial Map Tiles (국토교통부 브이월드 지도)
+    let primaryUrl = 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png';
+    let fallbackUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
     if (type === 'satellite') {
-      url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      primaryUrl = 'https://xdworld.vworld.kr/2d/Satellite/service/{z}/{x}/{y}.jpeg';
+      fallbackUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
 
-    this.activeTileLayer = L.tileLayer(url, {
-      maxZoom: 19,
-      crossOrigin: true
-    }).addTo(this.leafletMap);
+    const tileLayer = L.tileLayer(primaryUrl, {
+      maxZoom: 18,
+      minZoom: 6,
+      attribution: '© VWorld / 국토교통부 | 동양연합 영농형 태양광'
+    });
+
+    tileLayer.on('tileerror', () => {
+      console.warn(`Primary map tile load error for ${type}, switching to secondary fallback tile`);
+      this.leafletMap.removeLayer(tileLayer);
+      L.tileLayer(fallbackUrl, { maxZoom: 18 }).addTo(this.leafletMap);
+    });
+
+    this.activeTileLayer = tileLayer.addTo(this.leafletMap);
 
     const btnStreet = document.getElementById('mapModeStreetBtn');
     const btnSat = document.getElementById('mapModeSatBtn');
@@ -219,6 +232,16 @@ const DongyangAgriApp = {
     const targetSec = document.getElementById(`view-${viewId}`);
     if (targetSec) {
       targetSec.classList.add('active');
+    }
+
+    if (viewId === 'dashboard') {
+      setTimeout(() => {
+        if (this.leafletMap) {
+          this.leafletMap.invalidateSize();
+        } else {
+          this.initRealMap();
+        }
+      }, 150);
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
