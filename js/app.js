@@ -559,11 +559,8 @@ const DongyangAgriApp = {
   },
 
   handleLoginSubmit: function() {
-    const idInput = document.getElementById('loginId');
-    const id = idInput ? idInput.value.trim() : 'admin';
     sessionStorage.setItem('dongyang_agri_logged_in', 'true');
     this.hideAuthOverlay();
-    alert(`[${id || 'admin'}] 님, 영농형 태양광 통합 관제 플랫폼에 정상 로그인되었습니다.`);
   },
 
   handleSignupSubmit: function() {
