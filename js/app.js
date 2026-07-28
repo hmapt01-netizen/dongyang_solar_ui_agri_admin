@@ -42,6 +42,16 @@ const DongyangAgriApp = {
       }
     });
 
+    // Auto-close mobile drawer when scrolling main content
+    setTimeout(() => {
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        mainWrapper.addEventListener('scroll', () => {
+          this.closeMobileDrawer();
+        }, { passive: true });
+      }
+    }, 500);
+
     this.renderDashboard();
     this.renderSiteDetail(this.currentSiteId);
     
@@ -292,6 +302,13 @@ const DongyangAgriApp = {
     }
   },
 
+  closeMobileDrawer: function() {
+    const sidebar = document.querySelector('.left-sidebar');
+    if (sidebar && sidebar.classList.contains('drawer-open')) {
+      sidebar.classList.remove('drawer-open');
+    }
+  },
+
   updateClock: function() {
     const el = document.getElementById('headerLiveTime');
     if (el) {
@@ -377,26 +394,39 @@ const DongyangAgriApp = {
       }, 150);
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll container to absolute top of selected section
+    const mainWrapper = document.querySelector('.main-wrapper');
+    if (mainWrapper) {
+      mainWrapper.scrollTo({ top: 0, behavior: 'instant' });
+      mainWrapper.scrollTop = 0;
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
   },
 
   switchSubTab: function(tabName) {
+    this.closeMobileDrawer();
     document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`subtab-${tabName}`);
     if (activeBtn) activeBtn.classList.add('active');
 
+    const mainWrapper = document.querySelector('.main-wrapper');
+    let targetEl = null;
+
     if (tabName === 'activity') {
-      const el = document.getElementById('detailActivitiesSection');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      targetEl = document.getElementById('detailActivitiesSection');
     } else if (tabName === 'permit') {
-      const el = document.getElementById('detailPermitSection');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      targetEl = document.getElementById('detailPermitSection');
     } else if (tabName === 'action') {
-      const el = document.getElementById('detailAnomaliesSection');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      targetEl = document.getElementById('detailAnomaliesSection');
     } else {
-      const el = document.getElementById('siteDetailTopKpi');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      targetEl = document.getElementById('siteDetailTopKpi');
+    }
+
+    if (targetEl && mainWrapper) {
+      const topOffset = targetEl.offsetTop - 10;
+      mainWrapper.scrollTo({ top: Math.max(0, topOffset), behavior: 'smooth' });
     }
   },
 
