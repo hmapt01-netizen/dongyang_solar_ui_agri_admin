@@ -17,6 +17,12 @@ const DongyangAgriApp = {
     this.updateClock();
     setInterval(() => this.updateClock(), 1000);
 
+    // Check initial auth status (Show auth overlay on initial load if not logged in)
+    const isLoggedIn = sessionStorage.getItem('dongyang_agri_logged_in') === 'true';
+    if (!isLoggedIn) {
+      setTimeout(() => this.showAuthOverlay(), 150);
+    }
+
     // Auto-detect mobile devices
     const checkMobile = () => {
       if (window.innerWidth <= 768 || /Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -61,7 +67,9 @@ const DongyangAgriApp = {
     // Initialize Leaflet Map centered on Gangwon-do (Wonju/Hoengseong/Chuncheon)
     this.leafletMap = L.map('realLeafletMap', {
       zoomControl: true,
-      attributionControl: false
+      attributionControl: false,
+      fadeAnimation: false,
+      zoomAnimation: true
     }).setView([37.55, 127.85], 9);
 
     this.switchMapTile(this.currentTileType);
@@ -106,8 +114,21 @@ const DongyangAgriApp = {
     });
 
     setTimeout(() => {
-      if (this.leafletMap) this.leafletMap.invalidateSize();
+      if (this.leafletMap) {
+        this.fitAllSites();
+      }
     }, 300);
+  },
+
+  fitAllSites: function() {
+    if (!this.leafletMap) return;
+    this.leafletMap.invalidateSize();
+
+    const siteList = Object.keys(AGRI_ADMIN_DATA.sites).map(id => AGRI_ADMIN_DATA.sites[id]).filter(s => s.lat && s.lng);
+    if (siteList.length === 0) return;
+
+    const bounds = L.latLngBounds(siteList.map(s => [s.lat, s.lng]));
+    this.leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 10, animate: true });
   },
 
   switchMapTile: function(type) {
@@ -118,28 +139,17 @@ const DongyangAgriApp = {
       this.leafletMap.removeLayer(this.activeTileLayer);
     }
 
-    // VWorld Official Korean National Spatial Map Tiles (국토교통부 브이월드 지도)
-    let primaryUrl = 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png';
-    let fallbackUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-
+    let url = 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
     if (type === 'satellite') {
-      primaryUrl = 'https://xdworld.vworld.kr/2d/Satellite/service/{z}/{x}/{y}.jpeg';
-      fallbackUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
 
-    const tileLayer = L.tileLayer(primaryUrl, {
-      maxZoom: 18,
-      minZoom: 6,
-      attribution: '© VWorld / 국토교통부 | 동양연합 영농형 태양광'
-    });
-
-    tileLayer.on('tileerror', () => {
-      console.warn(`Primary map tile load error for ${type}, switching to secondary fallback tile`);
-      this.leafletMap.removeLayer(tileLayer);
-      L.tileLayer(fallbackUrl, { maxZoom: 18 }).addTo(this.leafletMap);
-    });
-
-    this.activeTileLayer = tileLayer.addTo(this.leafletMap);
+    this.activeTileLayer = L.tileLayer(url, {
+      maxZoom: 19,
+      subdomains: ['a', 'b', 'c', 'd'],
+      crossOrigin: true,
+      attribution: '© CartoDB / Esri Satellite | 동양연합 영농형 태양광'
+    }).addTo(this.leafletMap);
 
     const btnStreet = document.getElementById('mapModeStreetBtn');
     const btnSat = document.getElementById('mapModeSatBtn');
@@ -158,6 +168,92 @@ const DongyangAgriApp = {
     }
   },
 
+  filterMapByStatus: function(statusType) {
+    if (!this.leafletMap) return;
+
+    document.querySelectorAll('.natural-stat-card').forEach(card => card.classList.remove('kpi-active'));
+
+    const pill = document.getElementById('mapFilterPill');
+    this.leafletMap.invalidateSize();
+
+    if (statusType === 'watch') {
+      const watchCard = document.getElementById('kpiCardWatch');
+      if (watchCard) watchCard.classList.add('kpi-active');
+
+      if (pill) {
+        pill.style.display = 'inline-block';
+        pill.innerHTML = '⚠️ 관찰필요 2건 필터링됨 <span style="cursor:pointer; text-decoration:underline; margin-left:4px; font-weight:900;" onclick="DongyangAgriApp.filterMapByStatus(\'all\')">[전체보기]</span>';
+      }
+
+      const watchLatLngs = [];
+      Object.keys(AGRI_ADMIN_DATA.sites).forEach(siteId => {
+        const site = AGRI_ADMIN_DATA.sites[siteId];
+        const marker = this.markers[siteId];
+        if (marker) {
+          if (site.statusBadge === 'badge-warning') {
+            this.leafletMap.addLayer(marker);
+            watchLatLngs.push([site.lat, site.lng]);
+          } else {
+            this.leafletMap.removeLayer(marker);
+          }
+        }
+      });
+
+      if (watchLatLngs.length > 0) {
+        const bounds = L.latLngBounds(watchLatLngs);
+        this.leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 11, animate: true });
+      }
+
+    } else if (statusType === 'normal') {
+      const normalCard = document.getElementById('kpiCardNormal');
+      if (normalCard) normalCard.classList.add('kpi-active');
+
+      if (pill) {
+        pill.style.display = 'inline-block';
+        pill.innerHTML = '✅ 정상 3건 필터링됨 <span style="cursor:pointer; text-decoration:underline; margin-left:4px; font-weight:900;" onclick="DongyangAgriApp.filterMapByStatus(\'all\')">[전체보기]</span>';
+      }
+
+      const normalLatLngs = [];
+      Object.keys(AGRI_ADMIN_DATA.sites).forEach(siteId => {
+        const site = AGRI_ADMIN_DATA.sites[siteId];
+        const marker = this.markers[siteId];
+        if (marker) {
+          if (site.statusBadge === 'badge-success') {
+            this.leafletMap.addLayer(marker);
+            normalLatLngs.push([site.lat, site.lng]);
+          } else {
+            this.leafletMap.removeLayer(marker);
+          }
+        }
+      });
+
+      if (normalLatLngs.length > 0) {
+        const bounds = L.latLngBounds(normalLatLngs);
+        this.leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 10, animate: true });
+      }
+
+    } else if (statusType === 'inspection' || statusType === 'action') {
+      if (pill) {
+        pill.style.display = 'inline-block';
+        pill.innerHTML = 'ℹ️ 해당 상태 0건 <span style="cursor:pointer; text-decoration:underline; margin-left:4px; font-weight:900;" onclick="DongyangAgriApp.filterMapByStatus(\'all\')">[전체보기]</span>';
+      }
+      alert('해당 상태에 해당하는 사업장이 현재 0건입니다.');
+    } else {
+      // 'all'
+      const allCard = document.getElementById('kpiCardAll');
+      if (allCard) allCard.classList.add('kpi-active');
+      if (pill) pill.style.display = 'none';
+
+      Object.keys(AGRI_ADMIN_DATA.sites).forEach(siteId => {
+        const marker = this.markers[siteId];
+        if (marker) {
+          this.leafletMap.addLayer(marker);
+        }
+      });
+      this.fitAllSites();
+    }
+  },
+
   toggleMobileSim: function() {
     this.isMobileSimMode = !this.isMobileSimMode;
     document.body.classList.toggle('mobile-sim-mode', this.isMobileSimMode);
@@ -166,6 +262,12 @@ const DongyangAgriApp = {
     if (btn) {
       btn.innerHTML = this.isMobileSimMode ? '<i class="fa-solid fa-desktop"></i> 🖥️ PC뷰' : '<i class="fa-solid fa-mobile-screen-button"></i> 📱 폰뷰';
     }
+
+    setTimeout(() => {
+      if (this.leafletMap) {
+        this.fitAllSites();
+      }
+    }, 250);
 
     let toast = document.getElementById('mobileSimToast');
     if (!toast) {
@@ -213,8 +315,39 @@ const DongyangAgriApp = {
     }
   },
 
+  selectSite: function(siteId) {
+    const select = document.getElementById('plantSelect');
+    if (siteId === 'all') {
+      if (select) select.value = 'all';
+      this.switchView('dashboard');
+      return;
+    }
+
+    this.currentSiteId = siteId;
+    if (select) select.value = siteId;
+
+    this.renderSiteDetail(siteId);
+    this.switchView('site-detail');
+  },
+
   switchView: function(viewId) {
+    const sidebar = document.querySelector('.left-sidebar');
+    if (sidebar) {
+      sidebar.classList.remove('drawer-open');
+    }
+
     this.currentView = viewId;
+
+    document.querySelectorAll('.plantSelectSelect').forEach(select => {
+      if (viewId === 'dashboard') {
+        select.value = 'all';
+      } else if (viewId === 'site-detail') {
+        if (select.value === 'all') {
+          select.value = this.currentSiteId || '12139';
+        }
+        this.renderSiteDetail(select.value);
+      }
+    });
 
     // Update Sidebar active item
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -248,18 +381,38 @@ const DongyangAgriApp = {
   },
 
   switchSubTab: function(tabName) {
-    console.log(`Switched to subtab: ${tabName}`);
+    document.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`subtab-${tabName}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    if (tabName === 'activity') {
+      const el = document.getElementById('detailActivitiesSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (tabName === 'permit') {
+      const el = document.getElementById('detailPermitSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (tabName === 'action') {
+      const el = document.getElementById('detailAnomaliesSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      const el = document.getElementById('siteDetailTopKpi');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   },
 
   selectSite: function(siteId) {
-    if (!AGRI_ADMIN_DATA.sites[siteId]) return;
     this.currentSiteId = siteId;
 
-    const select = document.getElementById('plantSelect');
-    if (select) select.value = siteId;
+    document.querySelectorAll('.plantSelectSelect').forEach(select => {
+      select.value = siteId;
+    });
 
-    this.renderSiteDetail(siteId);
-    this.switchView('site-detail');
+    if (siteId !== 'all' && AGRI_ADMIN_DATA.sites[siteId]) {
+      this.renderSiteDetail(siteId);
+      this.switchView('site-detail');
+    } else {
+      this.switchView('dashboard');
+    }
   },
 
   renderDashboard: function() {
@@ -305,7 +458,10 @@ const DongyangAgriApp = {
   },
 
   renderSiteDetail: function(siteId) {
-    const site = AGRI_ADMIN_DATA.sites[siteId] || AGRI_ADMIN_DATA.sites['haemi-01'];
+    const validId = (siteId && AGRI_ADMIN_DATA.sites[siteId]) ? siteId : '12139';
+    const site = AGRI_ADMIN_DATA.sites[validId];
+    if (!site) return;
+    this.currentSiteId = validId;
     
     document.getElementById('siteDetailTitle').textContent = site.name;
     document.getElementById('siteDetailBreadcrumb').textContent = `사업장 / ${site.code}`;
@@ -353,6 +509,77 @@ const DongyangAgriApp = {
     alert(`[${action}] 판정이 정상 등록되었습니다.`);
   },
 
+  showAuthOverlay: function() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+      overlay.style.setProperty('display', 'flex', 'important');
+    }
+  },
+
+  hideAuthOverlay: function() {
+    const overlay = document.getElementById('authOverlay');
+    if (overlay) {
+      overlay.style.setProperty('display', 'none', 'important');
+    }
+  },
+
+  switchAuthTab: function(tab) {
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const tabLogin = document.getElementById('authTabLogin');
+    const tabSignup = document.getElementById('authTabSignup');
+
+    if (tab === 'login') {
+      if (loginForm) loginForm.style.display = 'flex';
+      if (signupForm) signupForm.style.display = 'none';
+      if (tabLogin) {
+        tabLogin.style.background = '#3d5a47';
+        tabLogin.style.color = '#ffffff';
+        tabLogin.style.boxShadow = '0 2px 8px rgba(61,90,71,0.4)';
+      }
+      if (tabSignup) {
+        tabSignup.style.background = 'transparent';
+        tabSignup.style.color = 'var(--text-secondary, #64748b)';
+        tabSignup.style.boxShadow = 'none';
+      }
+    } else {
+      if (loginForm) loginForm.style.display = 'none';
+      if (signupForm) signupForm.style.display = 'flex';
+      if (tabSignup) {
+        tabSignup.style.background = '#3d5a47';
+        tabSignup.style.color = '#ffffff';
+        tabSignup.style.boxShadow = '0 2px 8px rgba(61,90,71,0.4)';
+      }
+      if (tabLogin) {
+        tabLogin.style.background = 'transparent';
+        tabLogin.style.color = 'var(--text-secondary, #64748b)';
+        tabLogin.style.boxShadow = 'none';
+      }
+    }
+  },
+
+  handleLoginSubmit: function() {
+    const idInput = document.getElementById('loginId');
+    const id = idInput ? idInput.value.trim() : 'admin';
+    sessionStorage.setItem('dongyang_agri_logged_in', 'true');
+    this.hideAuthOverlay();
+    alert(`[${id || 'admin'}] 님, 영농형 태양광 통합 관제 플랫폼에 정상 로그인되었습니다.`);
+  },
+
+  handleSignupSubmit: function() {
+    const nameInput = document.getElementById('signupName');
+    const name = nameInput ? nameInput.value.trim() : '사용자';
+    alert(`[${name}] 님의 회원가입 신청이 정상 접수되었습니다. 관리자 승인 후 로그인해 주세요.`);
+    this.switchAuthTab('login');
+  },
+
+  handleLogout: function() {
+    if (confirm("관리자 전용 로그인 세션을 종료하고 로그아웃 하시겠습니까?")) {
+      sessionStorage.removeItem('dongyang_agri_logged_in');
+      this.showAuthOverlay();
+    }
+  },
+
   handleSearch: function(e) {
     const query = e.target.value.toLowerCase().trim();
     if (!query) return;
@@ -372,7 +599,8 @@ const DongyangAgriApp = {
   },
 
   openReportModal: function(siteId) {
-    const site = AGRI_ADMIN_DATA.sites[siteId] || AGRI_ADMIN_DATA.sites['haemi-01'];
+    const validId = (siteId && AGRI_ADMIN_DATA.sites[siteId]) ? siteId : '12139';
+    const site = AGRI_ADMIN_DATA.sites[validId];
     const modal = document.getElementById('reportModal');
     const content = document.getElementById('modalReportContent');
 
@@ -386,7 +614,7 @@ const DongyangAgriApp = {
           <div style="font-size:10.5px; color:#a3b8aa; font-weight:800; margin-bottom:4px;">REPORTING PERIOD</div>
           <div style="font-size:20px; font-weight:900; margin-bottom:8px;">${AGRI_ADMIN_DATA.summary.reportingPeriod}</div>
           <div style="font-size:13px; font-weight:800;">사업장: ${site.name}</div>
-          <div style="font-size:11.5px; color:#a3b8aa;">허가번호 ${site.permitNo} · 관리기관 서산시</div>
+          <div style="font-size:11.5px; color:#a3b8aa;">허가번호 ${site.permitNo} · 관리기관 강원특별자치도 / 원주·횡성·춘천시</div>
         </div>
 
         <div style="display:grid; grid-template-columns:3fr 2fr; gap:16px; margin-bottom:20px;">

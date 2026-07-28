@@ -11,9 +11,15 @@
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Leaflet.js Real Interactive Map CDN -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet.js Real Interactive Map CDN (Multi-CDN for 100% Local Reliability) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>');
+    }
+  </script>
 
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,14 +27,40 @@
 <body>
   <div id="app">
 
-    <!-- 📍 TOP FIXED HEADER -->
+    <!-- 📍 TOP FIXED HEADER (DUAL RESPONSIVE LAYOUT) -->
     <header class="top-header">
-      <div class="brand-section" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-        <img src="logo.png" alt="동양연합 로고" style="height:32px; width:auto; object-fit:contain; flex-shrink:0;" onclick="DongyangAgriApp.switchView('dashboard')">
-        <span class="system-title" onclick="DongyangAgriApp.switchView('dashboard')">영농형 태양광 종합관리</span>
+      <!-- Row 1: Logo, PC Dropdown & User Control Bar -->
+      <div class="header-top-row">
+        <div class="brand-section" onclick="DongyangAgriApp.switchView('dashboard')">
+          <img src="logo.png" alt="동양연합 로고" class="header-logo">
+          <span class="system-title">영농형 태양광 종합관리</span>
+        </div>
 
-        <div class="plant-select-wrapper" style="margin-left:12px; width:340px;">
-          <select id="plantSelect" onchange="DongyangAgriApp.selectSite(this.value)" style="width:100%; padding:6px 14px; border-radius:20px; border:1.5px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:12.5px; font-weight:800; outline:none; cursor:pointer;">
+        <!-- PC Desktop View Plant Selection Dropdown (Same Row as Logo) -->
+        <div class="plant-select-wrapper pc-plant-select">
+          <select class="plantSelectSelect" onchange="DongyangAgriApp.selectSite(this.value)">
+            <option value="all">🌐 [전체 사업장] 통합 관제 (5개 발전소)</option>
+            <option value="12139">[12139][원주] 온누리3,4 (200kW)</option>
+            <option value="12138">[12138][원주] 온누리1,2 (200kW)</option>
+            <option value="12140">[12140][원주] 온누리5,6 (300kW)</option>
+            <option value="12141">[12141][횡성] 청정영농형1호 (500kW)</option>
+            <option value="12142">[12142][춘천] 소양강 영농태양광 (150kW)</option>
+          </select>
+        </div>
+
+        <div class="header-right-user">
+          <button class="btn-logout" onclick="DongyangAgriApp.handleLogout()" title="관리자 전용 로그아웃">로그아웃</button>
+          <button class="btn-theme-toggle" onclick="DongyangAgriApp.toggleTheme()" title="다크/라이트 테마 전환">
+            <i class="fa-solid fa-moon" id="themeIcon"></i> <span class="theme-text">테마</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile View Row 2: Plant Selection Dropdown (Only visible on mobile) -->
+      <div class="header-bottom-row mobile-plant-select-row">
+        <div class="plant-select-wrapper">
+          <select class="plantSelectSelect" onchange="DongyangAgriApp.selectSite(this.value)">
+            <option value="all">🌐 [전체 사업장] 통합 관제 (5개 발전소)</option>
             <option value="12139">[12139][원주] 온누리3,4 (200kW)</option>
             <option value="12138">[12138][원주] 온누리1,2 (200kW)</option>
             <option value="12140">[12140][원주] 온누리5,6 (300kW)</option>
@@ -37,81 +69,67 @@
           </select>
         </div>
       </div>
-
-      <div class="header-search-box">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" id="globalSearchInput" placeholder="사업장명, 허가번호 검색 (예: 서산 해미 1호)" onkeyup="DongyangAgriApp.handleSearch(event)">
-      </div>
-
-      <div class="header-actions">
-        <div class="timestamp-pill">
-          <i class="fa-regular fa-clock" style="color:var(--sage-primary);"></i>
-          <span id="headerLiveTime">2027.04.02 09:00</span>
-        </div>
-        <button class="btn-header btn-terracotta" onclick="DongyangAgriApp.openReportModal('haemi-01')">
-          <i class="fa-solid fa-file-pdf"></i> 정기점검 리포트
-        </button>
-        <button class="btn-header btn-sage" onclick="DongyangAgriApp.toggleTheme()" title="다크/라이트 테마 전환">
-          <i class="fa-solid fa-moon" id="themeIcon"></i>
-        </button>
-        <button id="mobileSimBtn" class="btn-header btn-sage" onclick="DongyangAgriApp.toggleMobileSim()" title="스마트폰 모바일 뷰 시뮬레이터 (Ctrl+M / F2)">
-          <i class="fa-solid fa-mobile-screen-button"></i> 📱 폰뷰
-        </button>
-      </div>
     </header>
 
     <!-- 📍 LEFT NAVIGATION SIDEBAR -->
     <aside class="left-sidebar">
       <div class="nav-drawer-handle" onclick="DongyangAgriApp.toggleMobileNav()" title="메뉴 펼치기/접기">
-        <span class="handle-text">☰ 전체메뉴</span>
+        <span class="handle-text">☰ 영농 관제 메뉴</span>
       </div>
       <div>
-        <div class="nav-group-title">메인 관제</div>
+        <div class="nav-group-title">영농 관제 메뉴</div>
         <ul class="nav-list">
           <li class="nav-item active" data-view="dashboard">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('dashboard')">
               <i class="fa-solid fa-chart-pie nav-icon-svg"></i>
-              <span>종합 대시보드</span>
+              <span class="nav-label-full">종합 대시보드</span>
+              <span class="nav-label-short">종합</span>
             </a>
           </li>
           <li class="nav-item" data-view="site-detail">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('site-detail')">
               <i class="fa-solid fa-wheat-awn nav-icon-svg"></i>
-              <span>사업장 상세</span>
+              <span class="nav-label-full">사업장 상세</span>
+              <span class="nav-label-short">사업장</span>
             </a>
           </li>
           <li class="nav-item" data-view="risk-center">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('risk-center')">
               <i class="fa-solid fa-triangle-exclamation nav-icon-svg"></i>
-              <span>이상징후 센터</span>
+              <span class="nav-label-full">이상징후 센터</span>
+              <span class="nav-label-short">이상징후</span>
             </a>
           </li>
           <li class="nav-item" data-view="video-evidence">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('video-evidence')">
               <i class="fa-solid fa-video nav-icon-svg"></i>
-              <span>영상 증빙 검토</span>
+              <span class="nav-label-full">영상 증빙 검토</span>
+              <span class="nav-label-short">영상</span>
             </a>
           </li>
           <li class="nav-item" data-view="report-center">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('report-center')">
               <i class="fa-solid fa-file-contract nav-icon-svg"></i>
-              <span>리포트 센터</span>
+              <span class="nav-label-full">리포트 센터</span>
+              <span class="nav-label-short">리포트</span>
             </a>
           </li>
           <li class="nav-item" data-view="inspection">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('inspection')">
               <i class="fa-solid fa-clipboard-check nav-icon-svg"></i>
-              <span>현장점검</span>
+              <span class="nav-label-full">현장점검</span>
+              <span class="nav-label-short">현장점검</span>
             </a>
           </li>
         </ul>
 
-        <div class="nav-group-title" style="margin-top:24px;">시스템 관리</div>
-        <ul class="nav-list">
-          <li class="nav-item" data-view="settings">
+        <div class="nav-group-title settings-group-title" style="margin-top:24px;">시스템 관리</div>
+        <ul class="nav-list nav-list-settings">
+          <li class="nav-item nav-item-settings" data-view="settings">
             <a class="nav-link" onclick="DongyangAgriApp.switchView('settings')">
               <i class="fa-solid fa-gear nav-icon-svg"></i>
-              <span>설정</span>
+              <span class="nav-label-full">설정</span>
+              <span class="nav-label-short">설정</span>
             </a>
           </li>
         </ul>
@@ -132,29 +150,29 @@
       <section id="view-dashboard" class="view-section active">
         <div class="page-title-bar">
           <div>
-            <div class="page-breadcrumb" style="font-size:15px; font-weight:800; color:var(--text-primary);">원주 · 횡성 · 춘천 영농형 태양광 5개 사업장 실시간 영농이행 관제 현황</div>
+            <div class="page-breadcrumb" style="font-size:15px; font-weight:800; color:var(--text-primary);">영농형 태양광 5개 사업장 실시간 영농이행 관제 현황</div>
           </div>
         </div>
 
-        <!-- 5 Summary KPI Cards -->
+        <!-- 5 Summary KPI Cards (Click to Filter Map) -->
         <div class="hero-stat-grid">
-          <div class="natural-stat-card">
+          <div class="natural-stat-card clickable-kpi kpi-active" id="kpiCardAll" onclick="DongyangAgriApp.filterMapByStatus('all')" title="클릭 시 지도에 전체 5개 사업장 표출">
             <div class="stat-label">전체 사업장</div>
             <div class="stat-value" id="statTotalSites">5</div>
           </div>
-          <div class="natural-stat-card">
+          <div class="natural-stat-card clickable-kpi" id="kpiCardNormal" onclick="DongyangAgriApp.filterMapByStatus('normal')" title="클릭 시 지도에 정상 이행 사업장(4개)만 표출">
             <div class="stat-label">정상 이행</div>
             <div class="stat-value" style="color:#10b981;" id="statNormalSites">4</div>
           </div>
-          <div class="natural-stat-card">
-            <div class="stat-label">관찰 필요</div>
+          <div class="natural-stat-card clickable-kpi" id="kpiCardWatch" onclick="DongyangAgriApp.filterMapByStatus('watch')" style="border:1.5px solid #f59e0b;" title="클릭 시 지도에 관찰 필요 사업장(1개)만 표출 및 줌인">
+            <div class="stat-label" style="color:#b45309;">관찰 필요 ⚠️</div>
             <div class="stat-value" style="color:#f59e0b;" id="statWatchSites">1</div>
           </div>
-          <div class="natural-stat-card">
+          <div class="natural-stat-card clickable-kpi" id="kpiCardInspection" onclick="DongyangAgriApp.filterMapByStatus('inspection')" title="클릭 시 현장점검 사업장 표출">
             <div class="stat-label">현장점검</div>
             <div class="stat-value" style="color:#ef4444;" id="statInspectionSites">0</div>
           </div>
-          <div class="natural-stat-card">
+          <div class="natural-stat-card clickable-kpi" id="kpiCardAction" onclick="DongyangAgriApp.filterMapByStatus('action')" title="클릭 시 시정검토 사업장 표출">
             <div class="stat-label">시정 검토</div>
             <div class="stat-value" style="color:#8b5cf6;" id="statActionSites">0</div>
           </div>
@@ -166,49 +184,33 @@
           <!-- Left: Regional Map / Pin View -->
           <div class="natural-card col-8">
             <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-map-location-dot" style="color:var(--sage-primary);"></i> 지역별 사업장 현황</span>
-              <div style="font-size:12px; font-weight:800; color:var(--text-muted);">
-                <span class="badge badge-success">● 정상 (4)</span>
-                <span class="badge badge-warning">● 관찰 (1)</span>
+              <span class="card-title">지역별 사업장 현황</span>
+              <div style="font-size:12px; font-weight:800; color:var(--text-muted); display:flex; gap:6px; align-items:center;">
+                <span class="badge badge-success" style="cursor:pointer; user-select:none;" onclick="DongyangAgriApp.filterMapByStatus('normal')" title="클릭 시 정상 사업장 (3개) 지도 필터링">● 정상 (3)</span>
+                <span class="badge badge-warning" style="cursor:pointer; user-select:none;" onclick="DongyangAgriApp.filterMapByStatus('watch')" title="클릭 시 관찰 필요 사업장 (2개) 지도 필터링">● 관찰 (2)</span>
               </div>
             </div>
             
             <div class="map-canvas-box" style="position:relative; width:100%; height:400px; border-radius:14px; overflow:hidden; border:1.5px solid var(--border-color); background:#e6ede8;">
               
-              <!-- Real Leaflet Map Container with Embedded Backdrop -->
-              <div id="realLeafletMap" style="width:100%; height:100%; border-radius:14px; z-index:10; position:relative; background:#e6ede8;">
-                <div id="localGeoBackdrop" style="position:absolute; inset:0; z-index:1; background:#e4eae5;">
-                  <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid slice">
-                    <rect width="800" height="400" fill="#e4eae5"/>
-                    <path d="M 0 110 Q 250 70 450 150 T 800 190" stroke="#93c5fd" stroke-width="24" fill="none" opacity="0.8"/>
-                    <path d="M 360 0 Q 390 160 420 400" stroke="#60a5fa" stroke-width="14" fill="none" opacity="0.7"/>
-                    <path d="M 120 230 Q 300 290 600 250" stroke="#a7f3d0" stroke-width="40" fill="none" opacity="0.4"/>
-                    <path d="M 50 400 Q 250 210 450 0" stroke="#f59e0b" stroke-width="6" fill="none" stroke-dasharray="8 4" opacity="0.8"/>
-                    <path d="M 0 250 Q 400 260 800 230" stroke="#ef4444" stroke-width="5" fill="none" opacity="0.7"/>
-                    <text x="240" y="230" font-weight="900" font-size="18" fill="#1d3324" opacity="0.45">강원특별자치도 원주시</text>
-                    <text x="520" y="160" font-weight="900" font-size="18" fill="#1d3324" opacity="0.45">횡성군</text>
-                    <text x="300" y="90" font-weight="900" font-size="18" fill="#1d3324" opacity="0.45">춘천시</text>
-                  </svg>
-                  <div class="map-pin green" style="top:48%; left:42%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12139')" title="[12139][원주] 온누리3,4 (정상 이행 - 콩/감자)"></div>
-                  <div class="map-pin green" style="top:42%; left:36%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12138')" title="[12138][원주] 온누리1,2 (정상 이행 - 옥수수/배추)"></div>
-                  <div class="map-pin orange" style="top:54%; left:48%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12140')" title="[12140][원주] 온누리5,6 (관찰 필요 - 벼/들깨)"></div>
-                  <div class="map-pin green" style="top:35%; left:62%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12141')" title="[12141][횡성] 청정영농형1호 (정상 이행 - 사과/인삼)"></div>
-                  <div class="map-pin green" style="top:22%; left:40%; position:absolute; z-index:20; cursor:pointer;" onclick="DongyangAgriApp.selectSite('12142')" title="[12142][춘천] 소양강 영농태양광 (정상 이행 - 블루베리/고추)"></div>
-                </div>
-              </div>
+              <!-- Real Leaflet Map Container -->
+              <div id="realLeafletMap" style="width:100%; height:100%; border-radius:14px; position:relative;"></div>
 
-              <!-- Map Header & Map Mode Controls -->
-              <div style="position:absolute; top:12px; left:16px; font-weight:900; font-size:13px; color:var(--sage-dark); background:rgba(255,255,255,0.95); padding:6px 14px; border-radius:8px; border:1px solid var(--border-color); z-index:999; box-shadow:0 2px 8px rgba(0,0,0,0.15); display:flex; align-items:center; gap:10px;">
-                <span>📍 강원특별자치도 영농형 태양광 관제 지도</span>
-                <div style="display:inline-flex; gap:4px; margin-left:8px;">
-                  <button id="mapModeStreetBtn" onclick="DongyangAgriApp.switchMapTile('street')" style="padding:3px 8px; font-size:11px; font-weight:800; background:var(--sage-primary); color:#ffffff; border:none; border-radius:4px; cursor:pointer;">🗺️ 일반지도</button>
-                  <button id="mapModeSatBtn" onclick="DongyangAgriApp.switchMapTile('satellite')" style="padding:3px 8px; font-size:11px; font-weight:800; background:#e2e8f0; color:#334155; border:none; border-radius:4px; cursor:pointer;">🛰️ 위성지도</button>
+              <!-- Map Header & Map Mode Controls & Filter Pill -->
+              <div class="map-control-overlay" style="position:absolute; top:10px; left:10px; right:10px; z-index:999; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; pointer-events:none;">
+                <div style="font-weight:900; font-size:12px; color:var(--sage-dark); background:rgba(255,255,255,0.95); padding:5px 10px; border-radius:8px; border:1px solid var(--border-color); box-shadow:0 2px 8px rgba(0,0,0,0.15); pointer-events:auto; display:flex; align-items:center; gap:6px;">
+                  <span>📍 강원 관제 지도</span>
+                  <span id="mapFilterPill" style="display:none; font-size:10.5px; font-weight:800; background:#fef3c7; color:#b45309; padding:2px 6px; border-radius:10px; border:1px solid #fde68a;"></span>
+                </div>
+                <div style="display:inline-flex; gap:4px; pointer-events:auto;">
+                  <button id="mapModeStreetBtn" onclick="DongyangAgriApp.switchMapTile('street')" style="padding:4px 8px; font-size:10.5px; font-weight:800; background:var(--sage-primary); color:#ffffff; border:none; border-radius:6px; cursor:pointer;">🗺️ 일반</button>
+                  <button id="mapModeSatBtn" onclick="DongyangAgriApp.switchMapTile('satellite')" style="padding:4px 8px; font-size:10.5px; font-weight:800; background:#e2e8f0; color:#334155; border:none; border-radius:6px; cursor:pointer;">🛰️ 위성</button>
                 </div>
               </div>
 
               <!-- Map Footer Info -->
-              <div style="position:absolute; bottom:14px; right:16px; background:rgba(255,255,255,0.95); padding:6px 14px; border-radius:8px; font-size:11.5px; font-weight:800; border:1px solid var(--border-color); z-index:999; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
-                💡 실시간 지형/위성지도 상의 마커 핀을 클릭하시면 해당 사업장 상세 관제로 이동합니다.
+              <div style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(255,255,255,0.95); padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; border:1px solid var(--border-color); z-index:999; box-shadow:0 2px 8px rgba(0,0,0,0.15); text-align:center;">
+                💡 지도의 마커 핀을 클릭하시면 해당 사업장 상세 관제로 이동합니다.
               </div>
             </div>
           </div>
@@ -216,7 +218,7 @@
           <!-- Right: Priority Watchlist -->
           <div class="natural-card col-4">
             <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:var(--terracotta);"></i> 우선 확인 대상</span>
+              <span class="card-title">우선 확인 대상</span>
               <span class="badge badge-danger">위험도 순</span>
             </div>
 
@@ -264,23 +266,22 @@
             <h1 class="page-title" id="siteDetailTitle">서산 해미 영농형 태양광 1호</h1>
             <div class="page-breadcrumb" id="siteDetailBreadcrumb">사업장 / 서산 해미 1호</div>
           </div>
-          <span class="badge badge-success" id="siteDetailStatusBadge" style="font-size:13px; padding:6px 14px;">정상 이행</span>
+          <span class="badge badge-warning" id="siteDetailStatusBadge" style="font-size:13px; padding:6px 14px;">관찰 필요</span>
         </div>
 
-        <!-- Sub Tabs -->
-        <div style="display:flex; gap:8px; margin-bottom:20px;">
-          <button class="btn-header btn-sage" id="subtab-overview" onclick="DongyangAgriApp.switchSubTab('overview')">개요</button>
-          <button class="btn-header" style="background:var(--bg-card-subtle); color:var(--text-primary);" id="subtab-activity" onclick="DongyangAgriApp.switchSubTab('activity')">영농활동</button>
-          <button class="btn-header" style="background:var(--bg-card-subtle); color:var(--text-primary);" id="subtab-video" onclick="DongyangAgriApp.switchSubTab('video')">영상 증빙</button>
-          <button class="btn-header" style="background:var(--bg-card-subtle); color:var(--text-primary);" id="subtab-permit" onclick="DongyangAgriApp.switchSubTab('permit')">허가·계획</button>
-          <button class="btn-header" style="background:var(--bg-card-subtle); color:var(--text-primary);" id="subtab-action" onclick="DongyangAgriApp.switchSubTab('action')">행정조치</button>
+        <!-- Sub Tabs Bar (4 Items: 개요, 영농활동, 허가·계획, 행정조치) -->
+        <div class="subtab-segmented-bar">
+          <button class="subtab-btn active" id="subtab-overview" onclick="DongyangAgriApp.switchSubTab('overview')"><i class="fa-solid fa-chart-line"></i> 개요</button>
+          <button class="subtab-btn" id="subtab-activity" onclick="DongyangAgriApp.switchSubTab('activity')"><i class="fa-solid fa-wheat-awn"></i> 영농활동</button>
+          <button class="subtab-btn" id="subtab-permit" onclick="DongyangAgriApp.switchSubTab('permit')"><i class="fa-solid fa-file-contract"></i> 허가·계획</button>
+          <button class="subtab-btn" id="subtab-action" onclick="DongyangAgriApp.switchSubTab('action')"><i class="fa-solid fa-shield-halved"></i> 행정조치</button>
         </div>
 
-        <!-- Site Top 5 KPI Cards -->
-        <div class="hero-stat-grid">
+        <!-- Site Top 5 KPI Cards (Overview Section) -->
+        <div class="hero-stat-grid" id="siteDetailTopKpi">
           <div class="natural-stat-card">
             <div class="stat-label">영농이행지수</div>
-            <div class="stat-value" style="color:var(--sage-primary);" id="detailKpiScore">93</div>
+            <div class="stat-value" style="color:var(--sage-primary);" id="detailKpiScore">85</div>
           </div>
           <div class="natural-stat-card">
             <div class="stat-label">신고작물 일치</div>
@@ -288,7 +289,7 @@
           </div>
           <div class="natural-stat-card">
             <div class="stat-label">실경작면적</div>
-            <div class="stat-value" id="detailKpiArea">93%</div>
+            <div class="stat-value" id="detailKpiArea">85%</div>
           </div>
           <div class="natural-stat-card">
             <div class="stat-label">월간 이벤트</div>
@@ -303,8 +304,8 @@
         <!-- Site Detail Grid -->
         <div class="grid-container">
           
-          <!-- Left: Monthly Activity Timeline Table -->
-          <div class="natural-card col-7">
+          <!-- Left: Monthly Activity Timeline Table (Farming Activity Section) -->
+          <div class="natural-card col-7" id="detailActivitiesSection">
             <div class="card-header">
               <span class="card-title"><i class="fa-solid fa-calendar-check" style="color:var(--sage-primary);"></i> 월간 영농활동 이력</span>
               <button class="btn-header btn-sage" style="padding:4px 10px; font-size:11px;" onclick="DongyangAgriApp.switchView('video-evidence')">🎥 영상 검토 이동</button>
@@ -328,8 +329,8 @@
             </div>
           </div>
 
-          <!-- Right: Permit Plan Comparison -->
-          <div class="natural-card col-5">
+          <!-- Right: Permit Plan Comparison (Permit Section) -->
+          <div class="natural-card col-5" id="detailPermitSection">
             <div class="card-header">
               <span class="card-title"><i class="fa-solid fa-file-pen" style="color:var(--sage-primary);"></i> 허가정보 비교</span>
             </div>
@@ -350,7 +351,7 @@
                 </tr>
                 <tr>
                   <th style="text-align:left;">실경작 면적</th>
-                  <td style="text-align:left; font-weight:800;" id="actualAreaSize">3,720 ㎡ (93%)</td>
+                  <td style="text-align:left; font-weight:800;" id="actualAreaSize">3,400 ㎡ (85%)</td>
                 </tr>
                 <tr>
                   <th style="text-align:left;">타용도 의심</th>
@@ -360,8 +361,8 @@
             </table>
           </div>
 
-          <!-- Bottom: Anomaly Card -->
-          <div class="natural-card col-12" style="background:#fffbeb; border-color:#fde68a;">
+          <!-- Bottom: Anomaly Card (Action Section) -->
+          <div class="natural-card col-12" id="detailAnomaliesSection" style="background:#fffbeb; border-color:#fde68a;">
             <div class="card-header" style="border-bottom-color:#fef3c7;">
               <span class="card-title" style="color:#b45309;"><i class="fa-solid fa-triangle-exclamation"></i> 이상징후 및 관찰 항목</span>
               <span class="badge badge-warning">관찰 대상</span>
@@ -379,110 +380,122 @@
            VIEW 3: 영상 증빙 검토 (AI Video Evidence Review View)
            =================================================================== -->
       <section id="view-video-evidence" class="view-section">
-        <div class="page-title-bar">
-          <div>
-            <h1 class="page-title">AI 영상 증빙 검토</h1>
-            <div class="page-breadcrumb">서산 해미 1호 / CAM03 · 2027.03.28 10:42:16</div>
-          </div>
-          <button class="btn-header btn-terracotta" onclick="DongyangAgriApp.applyToReport()">
-            <i class="fa-solid fa-circle-check"></i> 리포트에 반영
+        <div style="font-size:12.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;" id="videoEvidenceBreadcrumb">
+          [12139] [원주] 온누리3,4 / CAM03
+        </div>
+
+        <div class="page-title-bar" style="margin-bottom:20px; align-items:center; display:flex; justify-content:space-between;">
+          <h1 class="page-title" style="font-size:28px; font-weight:900; color:var(--sage-dark); margin:0;">AI 영상 증빙 검토</h1>
+          <button class="btn-header btn-sage" style="background:#1d3324; color:#ffffff; padding:10px 22px; border-radius:12px; font-weight:800; border:none; cursor:pointer;" onclick="DongyangAgriApp.applyToReport()">
+            리포트에 반영
           </button>
         </div>
 
+        <!-- Top Row: Video Frame Card & AI Classification Card -->
+        <div class="grid-container" style="margin-bottom:20px;">
+          
+          <!-- Left: AI Bounding Box Canvas Frame Card (col-6, Real Agrivoltaic Photo with Precise Bounding Boxes) -->
+          <div class="natural-card col-6" style="display:flex; flex-direction:column; justify-content:space-between; padding:20px;">
+            <div style="aspect-ratio: 16 / 9; width:100%; border-radius:14px; position:relative; overflow:hidden; border:1.5px solid var(--border-color); box-shadow:0 4px 12px rgba(0,0,0,0.15); background:#233a2b url('./cctv_sample_real.jpg') center/cover no-repeat;">
+              <!-- Soft CCTV Overlay -->
+              <div style="position:absolute; inset:0; background:rgba(20,40,28,0.12);"></div>
+
+              <!-- Bounding Box 1: 작업자 (Farmer) -->
+              <div style="position:absolute; top:42%; left:48.5%; width:70px; height:120px; border:2.5px solid #10b981; box-sizing:border-box; background:rgba(16,185,129,0.15); box-shadow:0 0 12px rgba(16,185,129,0.5);">
+                <div style="position:absolute; top:-24px; left:-2.5px; background:#10b981; color:#ffffff; font-size:11px; font-weight:900; padding:2px 8px; border-radius:4px 4px 0 0; white-space:nowrap;">
+                  작업자 0.98
+                </div>
+              </div>
+              
+              <!-- Bounding Box 2: 농기구/경운기 (Cultivator Machinery) -->
+              <div style="position:absolute; top:52%; left:45.5%; width:135px; height:180px; border:2.5px solid #0284c7; box-sizing:border-box; background:rgba(2,132,199,0.15); box-shadow:0 0 12px rgba(2,132,199,0.5);">
+                <div style="position:absolute; top:-24px; left:-2.5px; background:#0284c7; color:#ffffff; font-size:11px; font-weight:900; padding:2px 8px; border-radius:4px 4px 0 0; white-space:nowrap;">
+                  농기계(경운기) 0.96
+                </div>
+              </div>
+
+              <!-- CCTV Timestamp Overlay -->
+              <div style="position:absolute; bottom:10px; left:12px; color:#ffffff; font-size:11px; font-weight:800; text-shadow:0 2px 4px rgba(0,0,0,0.9); background:rgba(0,0,0,0.6); padding:3px 8px; border-radius:6px; z-index:10;">
+                🔴 REC · CAM03 (남측 경작구역)
+              </div>
+            </div>
+
+            <div style="margin-top:14px; font-size:11.5px; font-weight:700; color:var(--text-muted);" id="videoFrameFooterInfo">
+              2027.03.28 10:42:16 · GPS 37.34, 127.92 · 원본 영상 보존
+            </div>
+          </div>
+
+          <!-- Right: AI Classification Card (col-6) -->
+          <div class="natural-card col-6" style="display:flex; flex-direction:column; justify-content:space-between; padding:24px;">
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">AI 분류</div>
+              <h2 style="font-size:24px; font-weight:900; color:var(--sage-dark); margin:0 0 10px 0;">농기계 작업</h2>
+              
+              <div style="margin-bottom:18px;">
+                <span class="badge" style="background:#e1f0e4; color:#265239; font-weight:800; font-size:12px; padding:5px 14px; border-radius:20px;">신뢰도 94%</span>
+              </div>
+
+              <!-- List Table -->
+              <div style="display:flex; flex-direction:column; font-size:14.5px; font-weight:700;">
+                <div style="display:flex; justify-content:space-between; padding:16px 0; border-bottom:1px solid #f1f5f2;">
+                  <span style="color:var(--text-muted);">작업자</span>
+                  <span style="color:var(--text-primary); font-weight:900;" id="aiWorkerCount">2명</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:16px 0; border-bottom:1px solid #f1f5f2;">
+                  <span style="color:var(--text-muted);">농기계</span>
+                  <span style="color:var(--text-primary); font-weight:900;" id="aiMachineryCount">1대</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:16px 0; border-bottom:1px solid #f1f5f2;">
+                  <span style="color:var(--text-muted);">활동구역</span>
+                  <span style="color:var(--text-primary); font-weight:900;" id="aiZoneName">B구역</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:16px 0; border-bottom:1px solid #f1f5f2;">
+                  <span style="color:var(--text-muted);">허가작물</span>
+                  <span style="color:var(--text-primary); font-weight:900;" id="aiPermitCropName">콩</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons (인정, 보류, 오탐) -->
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:20px;">
+              <button style="background:#265239; color:#ffffff; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14.5px; cursor:pointer; transition:all 0.2s ease;" onclick="DongyangAgriApp.makeDecision('인정')">
+                인정
+              </button>
+              <button style="background:#ffffff; color:var(--text-primary); border:1.5px solid #e2e8f0; padding:14px; border-radius:12px; font-weight:800; font-size:14.5px; cursor:pointer; transition:all 0.2s ease;" onclick="DongyangAgriApp.makeDecision('보류')">
+                보류
+              </button>
+              <button style="background:#ffffff; color:var(--text-primary); border:1.5px solid #e2e8f0; padding:14px; border-radius:12px; font-weight:800; font-size:14.5px; cursor:pointer; transition:all 0.2s ease;" onclick="DongyangAgriApp.makeDecision('오탐')">
+                오탐
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Row: Decision Basis Card & Review History Card -->
         <div class="grid-container">
           
-          <!-- Left: AI Bounding Box Canvas Frame -->
-          <div class="natural-card col-7">
-            <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-eye" style="color:var(--sage-primary);"></i> AI 원본 영상 객체 탐지 뷰어</span>
-              <span class="badge badge-success">GPS: 36.71, 126.55</span>
-            </div>
-
-            <div class="video-canvas-container" id="videoCanvasBox">
-              <!-- Bounding Box Overlays -->
-              <div class="bbox" style="top:25%; left:20%; width:120px; height:160px; border-color:#10b981;">
-                <div class="bbox-label" style="background:#10b981;">작업자 0.97</div>
-              </div>
-              <div class="bbox" style="top:32%; left:45%; width:210px; height:180px; border-color:#0284c7;">
-                <div class="bbox-label" style="background:#0284c7;">농기계 0.92</div>
-              </div>
-
-              <div style="position:absolute; bottom:14px; left:16px; color:#ffffff; font-size:12px; font-weight:800; text-shadow:0 2px 4px rgba(0,0,0,0.8);">
-                📹 CAM03 (남측 진입로) · 2027.03.28 10:42:16 · 원본 영상 보존 검증 완료
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: AI Classification Details & Action Buttons -->
-          <div class="natural-card col-5">
-            <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-robot" style="color:var(--sage-primary);"></i> AI 판정 분류</span>
-              <span class="badge badge-success">신뢰도 94%</span>
-            </div>
-
-            <div style="font-size:22px; font-weight:900; color:var(--text-primary); margin-bottom:12px;">
-              농기계 작업 (증빙 적합)
-            </div>
-
-            <table class="natural-table" style="margin-bottom:18px;">
-              <tbody>
-                <tr>
-                  <th style="width:35%; text-align:left;">작업자</th>
-                  <td style="text-align:left; font-weight:800;">2명 탐지</td>
-                </tr>
-                <tr>
-                  <th style="text-align:left;">농기계</th>
-                  <td style="text-align:left; font-weight:800;">1대 탐지 (트랙터)</td>
-                </tr>
-                <tr>
-                  <th style="text-align:left;">활동 구역</th>
-                  <td style="text-align:left; font-weight:800;">B구역 (남측 경작지)</td>
-                </tr>
-                <tr>
-                  <th style="text-align:left;">허가 작물</th>
-                  <td style="text-align:left; font-weight:800; color:#10b981;">콩</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- Decision Action Buttons -->
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-              <button class="btn-header btn-sage" style="justify-content:center; padding:12px;" onclick="DongyangAgriApp.makeDecision('인정')">
-                <i class="fa-solid fa-check"></i> 인정
-              </button>
-              <button class="btn-header" style="justify-content:center; padding:12px; background:var(--bg-card-subtle); color:var(--text-primary);" onclick="DongyangAgriApp.makeDecision('보류')">
-                <i class="fa-solid fa-pause"></i> 보류
-              </button>
-              <button class="btn-header btn-terracotta" style="justify-content:center; padding:12px;" onclick="DongyangAgriApp.makeDecision('오탐')">
-                <i class="fa-solid fa-xmark"></i> 오탐
-              </button>
-            </div>
-          </div>
-
-          <!-- Bottom Left: Decision Basis List -->
-          <div class="natural-card col-7">
-            <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-list-check" style="color:var(--sage-primary);"></i> AI 판단 근거</span>
-            </div>
-            <ul style="font-size:13px; color:var(--text-secondary); line-height:1.8; font-weight:700;">
-              <li>• 작업자 2명 연속 탐지 (신뢰도 0.97)</li>
-              <li>• 농기계 이동 궤적 확인 (신뢰도 0.92)</li>
-              <li>• 경작구역 내 반복 영농 작업 패턴 관측</li>
-              <li>• 비농업적 주차·적치 패턴과 불일치 (정상 영농 판단)</li>
+          <!-- Bottom Left: 판단 근거 (col-7) -->
+          <div class="natural-card col-7" style="padding:24px;">
+            <h3 style="font-size:17px; font-weight:900; color:var(--sage-dark); margin:0 0 16px 0;">판단 근거</h3>
+            <ul style="list-style:none; padding:0; margin:0; font-size:13.5px; font-weight:700; color:var(--text-primary); line-height:2.2;">
+              <li>· 작업자 2명 연속 탐지</li>
+              <li>· 농기계 이동 궤적 확인</li>
+              <li>· 경작구역 내 반복 작업 패턴</li>
+              <li>· 비농업적 주차·적치 패턴과 불일치</li>
             </ul>
           </div>
 
-          <!-- Bottom Right: Review History -->
-          <div class="natural-card col-5">
-            <div class="card-header">
-              <span class="card-title"><i class="fa-solid fa-history" style="color:var(--sage-primary);"></i> 담당자 검토 이력</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card-subtle); padding:10px 14px; border-radius:10px; font-size:12.5px;">
+          <!-- Bottom Right: 검토 이력 (col-5) -->
+          <div class="natural-card col-5" style="padding:24px;">
+            <h3 style="font-size:17px; font-weight:900; color:var(--sage-dark); margin:0 0 16px 0;">검토 이력</h3>
+            
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <strong>김○○ 담당자</strong>
-                <div style="font-size:11px; color:var(--text-muted);">2027.04.03 14:21</div>
+                <strong style="font-size:14px; color:var(--text-primary); display:block;" id="reviewHistoryName">김○○</strong>
+                <span style="font-size:11.5px; color:var(--text-muted);" id="reviewHistoryTime">2027.04.03 14:21</span>
               </div>
-              <span class="badge badge-success" id="evidenceReviewStatusBadge">인정</span>
+              <span class="badge" style="background:#e1f0e4; color:#265239; font-weight:800; font-size:12px; padding:5px 14px; border-radius:20px;" id="reviewHistoryBadge">인정</span>
             </div>
           </div>
 
@@ -605,7 +618,7 @@
         <div class="page-title-bar">
           <div>
             <h1 class="page-title">리포트 센터</h1>
-            <div class="page-breadcrumb">서산 해미 영농형 태양광 1호 · 6페이지 정기점검 보고서</div>
+            <div class="page-breadcrumb">강원특별자치도 영농형 태양광 5개 사업장 · 6페이지 정기점검 보고서</div>
           </div>
           <button class="btn-header btn-terracotta" onclick="window.print()">
             <i class="fa-solid fa-print"></i> 1-Click PDF 인쇄 / 다운로드
@@ -613,33 +626,33 @@
         </div>
 
         <!-- 6-Page Formal PDF Report Container Preview -->
-        <div class="natural-card col-12" style="padding:40px; background:#ffffff;">
-          <div style="border:3px solid #3d5a47; border-radius:12px; padding:32px; background:linear-gradient(180deg, #f8faf9 0%, #ffffff 100%); margin-bottom:24px;">
+        <div class="natural-card col-12 report-card-container" style="padding:40px; background:#ffffff;">
+          <div class="report-inner-box" style="border:3px solid #3d5a47; border-radius:12px; padding:32px; background:linear-gradient(180deg, #f8faf9 0%, #ffffff 100%); margin-bottom:24px;">
             <div style="font-size:11px; font-weight:800; color:#3d5a47; letter-spacing:1px; margin-bottom:8px;">AGRIVOLTAIC COMPLIANCE REPORT</div>
-            <h2 style="font-size:26px; font-weight:900; color:#1d3324; margin-bottom:12px;">AI 기반 영농형 태양광 영농이행 정기점검 보고서</h2>
-            <p style="font-size:13px; color:#526759; margin-bottom:24px;">일반 스마트팜 생육분석이 아닌, 영농의무·적합작물 재배·농지 이용 적정성 확인을 위한 행정지원 보고서</p>
+            <h2 style="font-size:24px; font-weight:900; color:#1d3324; margin-bottom:12px; line-height:1.3;">AI 기반 영농형 태양광 영농이행 정기점검 보고서</h2>
+            <p style="font-size:12.5px; color:#526759; margin-bottom:20px; line-height:1.5;">일반 스마트팜 생육분석이 아닌, 영농의무·적합작물 재배·농지 이용 적정성 확인을 위한 행정지원 보고서</p>
 
-            <div style="background:#1d3324; color:#ffffff; padding:20px; border-radius:12px; margin-bottom:20px;">
+            <div style="background:#1d3324; color:#ffffff; padding:16px; border-radius:12px; margin-bottom:20px;">
               <div style="font-size:11px; color:#a3b8aa; font-weight:800; margin-bottom:4px;">REPORTING PERIOD</div>
-              <div style="font-size:22px; font-weight:900; margin-bottom:12px;">2027.03.01 - 2027.03.31</div>
-              <div style="font-size:13px;">사업장: 서산 해미 영농형 태양광 1호</div>
-              <div style="font-size:12px; color:#a3b8aa;">허가번호 2027-AGPV-0031 · 관리기관 서산시</div>
+              <div style="font-size:20px; font-weight:900; margin-bottom:10px;">2027.03.01 - 2027.03.31</div>
+              <div style="font-size:12.5px; font-weight:800;">사업장: [12139][원주] 온누리3,4 (200kW) 외 4개소</div>
+              <div style="font-size:11.5px; color:#a3b8aa; margin-top:2px;">허가번호 2027-AGPV-12139 · 관리기관 강원특별자치도 / 원주·횡성·춘천시</div>
             </div>
 
-            <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
-              <div style="background:#edf4ef; border-radius:12px; padding:20px; display:flex; align-items:center; justify-content:center; min-height:160px; font-weight:800; color:#3d5a47;">
+            <div class="report-grid-2col" style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+              <div style="background:#edf4ef; border-radius:12px; padding:16px; display:flex; align-items:center; justify-content:center; min-height:140px; font-weight:800; color:#3d5a47; text-align:center;">
                 📷 AI CAMERA 03 · 2027.03.28 10:42 썸네일 증빙
               </div>
-              <div style="background:#edf4ef; border-radius:12px; padding:20px;">
+              <div style="background:#edf4ef; border-radius:12px; padding:16px;">
                 <div style="font-size:11px; color:#526759; font-weight:800;">MONTHLY RESULT</div>
-                <div style="font-size:28px; font-weight:900; color:#10b981; margin:6px 0;">정상</div>
-                <span class="badge badge-success" style="margin-bottom:8px;">영농의무 이행</span>
-                <p style="font-size:11.5px; color:#324739; margin:0;">신고작물과 실제 작물이 일치하며 주요 영농활동이 지속적으로 확인되었습니다.</p>
+                <div style="font-size:26px; font-weight:900; color:#10b981; margin:4px 0;">정상</div>
+                <span class="badge badge-success" style="margin-bottom:8px; display:inline-block;">영농의무 이행</span>
+                <p style="font-size:11.5px; color:#324739; margin:0; line-height:1.4;">신고작물과 실제 작물이 일치하며 주요 영농활동이 지속적으로 확인되었습니다.</p>
               </div>
             </div>
           </div>
 
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; font-weight:700;">
+          <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; font-size:11px; color:#94a3b8; font-weight:700;">
             <span>자동생성 2027.04.02 09:00</span>
             <span>페이지 1 / 6 (전체 6페이지 행정 보고서 지원)</span>
           </div>
@@ -752,6 +765,88 @@
       <div style="padding:20px;" id="modalReportContent">
         <!-- Rendered dynamically -->
       </div>
+    </div>
+  </div>
+
+  <!-- 🔐 LOGIN & SIGNUP OVERLAY MODAL (EXACT MATCH FROM NATURAL_ECO WITHOUT POWER OPERATOR TAB) -->
+  <div id="authOverlay" class="modal-backdrop" style="display:none; position:fixed !important; top:0 !important; left:0 !important; width:100vw !important; height:100vh !important; z-index:99999999 !important; background:rgba(15,23,42,0.92) !important; backdrop-filter:blur(12px) !important; -webkit-backdrop-filter:blur(12px) !important; align-items:center !important; justify-content:center !important;">
+    <div class="auth-card" style="width:90%; max-width:420px; height:500px !important; min-height:500px !important; max-height:90vh; background:var(--bg-card); border-radius:20px; padding:24px 22px; border:1px solid var(--border-color); box-shadow:0 25px 60px rgba(0,0,0,0.6); display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; overflow:hidden !important; margin:auto !important;">
+      
+      <!-- Auth Card Header -->
+      <div style="text-align:center; position:relative;">
+        <button type="button" onclick="DongyangAgriApp.hideAuthOverlay()" style="position:absolute; top:-10px; right:-6px; background:rgba(0,0,0,0.06); border:1px solid var(--border-color); color:var(--text-secondary); width:28px; height:28px; border-radius:50%; font-size:13px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;" title="닫기">✕</button>
+        <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; flex-wrap:wrap; padding-right:15px;">
+          <img src="logo.png" alt="동양연합 로고" style="height:28px; width:auto; object-fit:contain;" />
+          <h2 style="margin:0; font-size:17px; font-weight:900; color:var(--text-primary); letter-spacing:-0.4px;">영농형 태양광 종합관리</h2>
+        </div>
+        <p style="margin:0; font-size:12px; color:var(--text-secondary); font-weight:700;">AI 영농이행 관제 플랫폼에 로그인하세요</p>
+      </div>
+
+      <!-- Mode Pill Buttons (로그인 / 회원가입) -->
+      <div style="display:flex; background:var(--bg-card-subtle, #f1f5f9); border-radius:12px; padding:4px; gap:4px; margin-top:4px;">
+        <button id="authTabLogin" type="button" style="flex:1; padding:9px 0; border:none; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; background:#3d5a47; color:#ffffff; box-shadow:0 2px 8px rgba(61,90,71,0.4);" onclick="DongyangAgriApp.switchAuthTab('login')">로그인</button>
+        <button id="authTabSignup" type="button" style="flex:1; padding:9px 0; border:none; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; background:transparent; color:var(--text-secondary, #64748b);" onclick="DongyangAgriApp.switchAuthTab('signup')">회원가입</button>
+      </div>
+
+      <!-- 1. LOGIN FORM -->
+      <form id="loginForm" onsubmit="event.preventDefault(); DongyangAgriApp.handleLoginSubmit();" style="display:flex; flex-direction:column; justify-content:space-between; flex:1; margin-top:10px; gap:10px;">
+        <div>
+          <!-- Role Indicator (Admin Only - No Power Operator Tab) -->
+          <div style="margin-bottom:10px;">
+            <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:4px;">로그인 권한 구분</label>
+            <div style="width:100%; padding:8px 12px; border:1px solid #3d5a47; background:rgba(61,90,71,0.12); color:#3d5a47; border-radius:8px; font-size:12.5px; font-weight:900; text-align:center; box-sizing:border-box;">
+              🛡️ 통합 관제 관리자 (Admin)
+            </div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:4px;">아이디 또는 이메일</label>
+            <input type="text" id="loginId" value="admin" required style="width:100%; padding:9px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:13.5px; background:var(--bg-card); color:var(--text-primary); font-weight:700; box-sizing:border-box;" placeholder="아이디 입력" />
+          </div>
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:4px;">비밀번호</label>
+            <input type="password" id="loginPw" value="1234" required style="width:100%; padding:9px 12px; border:1px solid var(--border-color); border-radius:10px; font-size:13.5px; background:var(--bg-card); color:var(--text-primary); font-weight:700; box-sizing:border-box;" placeholder="비밀번호 입력" />
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-secondary);">
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" checked style="accent-color:#3d5a47;" /> 아이디 저장
+            </label>
+            <a href="#" onclick="alert('시스템 관리자에게 비밀번호 재설정을 요청하세요.'); return false;" style="color:var(--text-secondary); text-decoration:underline;">비밀번호 찾기</a>
+          </div>
+        </div>
+        <button type="submit" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg, #3d5a47, #2d4536); color:#ffffff; font-size:14px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(61,90,71,0.35);">로그인</button>
+      </form>
+
+      <!-- 2. SIGNUP FORM (Hidden by default) -->
+      <form id="signupForm" onsubmit="event.preventDefault(); DongyangAgriApp.handleSignupSubmit();" style="display:none; flex-direction:column; justify-content:space-between; flex:1; margin-top:10px; gap:10px;">
+        <div>
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:3px;">사용자 성명</label>
+            <input type="text" id="signupName" required style="width:100%; padding:8px 12px; border:1px solid var(--border-color); border-radius:8px; font-size:13px; background:var(--bg-card); color:var(--text-primary); font-weight:700; box-sizing:border-box;" placeholder="홍길동" />
+          </div>
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:3px;">아이디 (이메일)</label>
+            <input type="email" id="signupEmail" required style="width:100%; padding:8px 12px; border:1px solid var(--border-color); border-radius:8px; font-size:13px; background:var(--bg-card); color:var(--text-primary); font-weight:700; box-sizing:border-box;" placeholder="user@dongyang.com" />
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div>
+              <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:3px;">비밀번호</label>
+              <input type="password" id="signupPw" required style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:12.5px; background:var(--bg-card); color:var(--text-primary); font-weight:700; box-sizing:border-box;" placeholder="비밀번호" />
+            </div>
+            <div>
+              <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-secondary); margin-bottom:3px;">비밀번호 확인</label>
+              <input type="password" id="signupPwConfirm" required style="width:100%; padding:8px 10px; border:1px solid var(--border-color); border-radius:8px; font-size:12.5px; background:var(--bg-card); color:var(--text-primary); font-weight:700; box-sizing:border-box;" placeholder="비밀번호 확인" />
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" required style="accent-color:#3d5a47;" /> 이용약관 및 개인정보 처리방침 동의 (필수)
+            </label>
+          </div>
+        </div>
+        <button type="submit" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg, #3d5a47, #2d4536); color:#ffffff; font-size:14px; font-weight:900; cursor:pointer; box-shadow:0 4px 12px rgba(61,90,71,0.35);">회원가입 완료</button>
+      </form>
+
     </div>
   </div>
 

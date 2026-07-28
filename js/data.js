@@ -6,8 +6,8 @@
 const AGRI_ADMIN_DATA = {
   summary: {
     totalSites: 5,
-    normalSites: 4,
-    watchSites: 1,
+    normalSites: 3,
+    watchSites: 2,
     inspectionSites: 0,
     actionSites: 0,
     reportingPeriod: "2027.03.01 - 2027.03.31",
@@ -31,13 +31,13 @@ const AGRI_ADMIN_DATA = {
       subCrop: "콩 / 감자 시범구",
       cropMatch: true,
       permitArea: 4000,
-      actualArea: 3720,
-      areaRatio: 93,
-      complianceScore: 93,
-      status: "정상 이행",
-      statusBadge: "badge-success",
-      riskLevel: "정상",
-      riskBadge: "badge-success",
+      actualArea: 3400,
+      areaRatio: 85,
+      complianceScore: 85,
+      status: "관찰 필요",
+      statusBadge: "badge-warning",
+      riskLevel: "관찰",
+      riskBadge: "badge-warning",
       eventsCount: 27,
       inactiveDays: 4,
       otherUseCount: 0,
@@ -46,12 +46,12 @@ const AGRI_ADMIN_DATA = {
       mainActivity: "경운·파종·제초",
       manager: "김○○",
       reviewDate: "2027.04.04",
-      decision: "정상 처리",
+      decision: "관찰 유지",
       
       scores: {
-        farmingDuty: 96,
-        cropCompliance: 95,
-        landUseAppropriateness: 91
+        farmingDuty: 86,
+        cropCompliance: 92,
+        landUseAppropriateness: 85
       },
 
       activities: [
@@ -334,7 +334,7 @@ const AGRI_ADMIN_DATA = {
 
   // Recent Reports Table (5 Plants)
   recentReports: [
-    { id: "12139", name: "[12139] [원주] 온누리3,4 (200kW)", crop: "콩 / 감자", events: "27건", area: "93%", result: "정상 이행", badge: "badge-success" },
+    { id: "12139", name: "[12139] [원주] 온누리3,4 (200kW)", crop: "콩 / 감자", events: "27건", area: "85%", result: "관찰 필요", badge: "badge-warning" },
     { id: "12138", name: "[12138] [원주] 온누리1,2 (200kW)", crop: "옥수수 / 배추", events: "24건", area: "92%", result: "정상 이행", badge: "badge-success" },
     { id: "12140", name: "[12140] [원주] 온누리5,6 (300kW)", crop: "벼 / 들깨", events: "18건", area: "90%", result: "관찰 필요", badge: "badge-warning" },
     { id: "12141", name: "[12141] [횡성] 청정영농형1호 (500kW)", crop: "사과 / 인삼", events: "35건", area: "90%", result: "정상 이행", badge: "badge-success" },
