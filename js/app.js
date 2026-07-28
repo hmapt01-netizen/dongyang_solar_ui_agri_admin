@@ -411,22 +411,38 @@ const DongyangAgriApp = {
     const activeBtn = document.getElementById(`subtab-${tabName}`);
     if (activeBtn) activeBtn.classList.add('active');
 
-    const mainWrapper = document.querySelector('.main-wrapper');
-    let targetEl = null;
+    // Clear previous highlight classes
+    const secOverview = document.getElementById('siteDetailTopKpi');
+    const secActivity = document.getElementById('detailActivitiesSection');
+    const secPermit = document.getElementById('detailPermitSection');
+    const secAction = document.getElementById('detailAnomaliesSection');
 
+    [secOverview, secActivity, secPermit, secAction].forEach(el => {
+      if (el) el.classList.remove('section-highlight');
+    });
+
+    let targetEl = null;
     if (tabName === 'activity') {
-      targetEl = document.getElementById('detailActivitiesSection');
+      targetEl = secActivity;
     } else if (tabName === 'permit') {
-      targetEl = document.getElementById('detailPermitSection');
+      targetEl = secPermit;
     } else if (tabName === 'action') {
-      targetEl = document.getElementById('detailAnomaliesSection');
+      targetEl = secAction;
     } else {
-      targetEl = document.getElementById('siteDetailTopKpi');
+      targetEl = secOverview;
     }
 
-    if (targetEl && mainWrapper) {
-      const topOffset = targetEl.offsetTop - 10;
-      mainWrapper.scrollTo({ top: Math.max(0, topOffset), behavior: 'smooth' });
+    if (targetEl) {
+      targetEl.classList.add('section-highlight');
+      setTimeout(() => {
+        targetEl.classList.remove('section-highlight');
+      }, 1600);
+
+      const mainWrapper = document.querySelector('.main-wrapper');
+      if (mainWrapper) {
+        const topOffset = targetEl.offsetTop - 15;
+        mainWrapper.scrollTo({ top: Math.max(0, topOffset), behavior: 'smooth' });
+      }
     }
   },
 
@@ -632,63 +648,298 @@ const DongyangAgriApp = {
     const content = document.getElementById('modalReportContent');
 
     content.innerHTML = `
-      <div style="border:3px solid #3d5a47; border-radius:12px; padding:32px; background:linear-gradient(180deg, #f8faf9 0%, #ffffff 100%); margin-bottom:24px;">
-        <div style="font-size:11px; font-weight:800; color:#3d5a47; letter-spacing:1px; margin-bottom:8px;">AGRIVOLTAIC COMPLIANCE REPORT</div>
-        <h2 style="font-size:24px; font-weight:900; color:#1d3324; margin-bottom:12px;">AI 기반 영농형 태양광 영농이행 정기점검 보고서</h2>
-        <p style="font-size:12.5px; color:#526759; margin-bottom:20px;">일반 스마트팜 생육분석이 아닌, 영농의무·적합작물 재배·농지 이용 적정성 확인을 위한 행정지원 보고서</p>
+      <div style="text-align:right; margin-bottom:16px;">
+        <button class="btn-header btn-terracotta" onclick="window.print()" style="padding:8px 18px; font-size:13px; font-weight:800; border-radius:30px; box-shadow:0 4px 14px rgba(208,98,69,0.35);">
+          <i class="fa-solid fa-print"></i> 1-Click PDF 인쇄 / 다운로드
+        </button>
+      </div>
 
-        <div style="background:#1d3324; color:#ffffff; padding:18px; border-radius:10px; margin-bottom:20px;">
-          <div style="font-size:10.5px; color:#a3b8aa; font-weight:800; margin-bottom:4px;">REPORTING PERIOD</div>
-          <div style="font-size:20px; font-weight:900; margin-bottom:8px;">${AGRI_ADMIN_DATA.summary.reportingPeriod}</div>
-          <div style="font-size:13px; font-weight:800;">사업장: ${site.name}</div>
-          <div style="font-size:11.5px; color:#a3b8aa;">허가번호 ${site.permitNo} · 관리기관 강원특별자치도 / 원주·횡성·춘천시</div>
+      <!-- 📄 PAGE 01: EXECUTIVE SUMMARY 종합 평가 -->
+      <div style="background:var(--bg-card, #ffffff); border:1px solid var(--border-color); border-radius:16px; padding:32px; margin-bottom:24px; box-shadow:var(--shadow-card);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted); letter-spacing:1px;">01 EXECUTIVE SUMMARY</span>
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted);">REPORT ID: APV-2027-03-0031</span>
         </div>
+        <h2 style="font-size:22px; font-weight:900; color:var(--text-primary); margin:0 0 20px 0;">종합 평가</h2>
+
+        <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:24px;">
+          <span style="font-size:54px; font-weight:900; color:var(--text-primary); line-height:1;">${site.complianceScore || 93}</span>
+          <div>
+            <div style="font-size:11px; font-weight:800; color:var(--text-muted); margin-bottom:4px;">영농이행지수</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong style="font-size:24px; font-weight:900; color:${site.statusBadge === 'badge-warning' ? '#d06245' : '#10b981'};">${site.status}</strong>
+              <span class="badge ${site.statusBadge}" style="padding:4px 10px; font-size:11.5px; border-radius:12px;">${site.statusBadge === 'badge-warning' ? '관찰 필요' : '현장점검 불필요'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin-bottom:20px;">
+          <div style="background:var(--bg-card-subtle); padding:14px 12px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">작물 확인</div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-primary);">${site.cropMatch ? '일치' : '불일치'}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${site.declaredCrop}</div>
+          </div>
+          <div style="background:var(--bg-card-subtle); padding:14px 12px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">실경작면적</div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-primary);">${site.areaRatio}%</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${site.actualArea.split(' ')[0]} ㎡</div>
+          </div>
+          <div style="background:var(--bg-card-subtle); padding:14px 12px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">영농 이벤트</div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-primary);">${site.eventsCount}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">월간 탐지</div>
+          </div>
+          <div style="background:var(--bg-card-subtle); padding:14px 12px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">연속 무활동</div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-primary);">${site.inactiveDays}일</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">기준 이내</div>
+          </div>
+          <div style="background:var(--bg-card-subtle); padding:14px 12px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">타용도 의심</div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-primary);">0</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">미탐지</div>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-card-subtle); border:1px solid var(--border-color); border-radius:12px; padding:16px 18px; margin-bottom:20px;">
+          <div style="font-size:11.5px; font-weight:800; color:var(--sage-primary); margin-bottom:6px;">AI 종합의견</div>
+          <p style="font-size:12.5px; color:var(--text-primary); margin:0; line-height:1.6;">
+            신고된 작물인 ${site.declaredCrop}이 전체 허가면적의 약 ${site.areaRatio}%에서 확인되었습니다. 3월 중 경운, 파종, 제초 및 작업자·농기계 활동이 탐지되었고 장기 방치나 비농업적 사용 징후는 확인되지 않았습니다. 본 결과는 행정담당자의 검토를 지원하기 위한 참고자료이며 법적 처분은 담당기관의 최종 판단에 따릅니다.
+          </p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+            <div style="font-size:12px; font-weight:800; color:var(--text-primary); margin-bottom:12px;">허가 및 영농계획 비교</div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); text-align:left;">
+                  <th style="padding:6px 0;">항목</th>
+                  <th style="padding:6px 0;">허가/계획</th>
+                  <th style="padding:6px 0;">AI 확인</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 0;">재배작물</td>
+                  <td>${site.declaredCrop}</td>
+                  <td><span class="badge badge-success" style="padding:2px 8px; font-size:11px;">일치</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 0;">재배면적</td>
+                  <td>${site.permitArea}</td>
+                  <td>${site.actualArea.split(' ')[0]} ㎡</td>
+                </tr>
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 0;">작업시기</td>
+                  <td>3월 경운·파종</td>
+                  <td>확인</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;">타용도 사용</td>
+                  <td>금지</td>
+                  <td>미탐지</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+            <div style="font-size:12px; font-weight:800; color:var(--text-primary); margin-bottom:14px;">검토 우선순위</div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-bottom:4px;">
+                <span>영농의무</span>
+                <strong>96%</strong>
+              </div>
+              <div style="background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
+                <div style="background:#3d5a47; width:96%; height:100%;"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-bottom:4px;">
+                <span>적합작물 재배</span>
+                <strong>95%</strong>
+              </div>
+              <div style="background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
+                <div style="background:#3d5a47; width:95%; height:100%;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-bottom:4px;">
+                <span>농지 이용 적정성</span>
+                <strong>91%</strong>
+              </div>
+              <div style="background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
+                <div style="background:#3d5a47; width:91%; height:100%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📄 PAGE 02: FARMING ACTIVITY 영농활동 분석 및 타임라인 -->
+      <div style="background:var(--bg-card, #ffffff); border:1px solid var(--border-color); border-radius:16px; padding:32px; margin-bottom:24px; box-shadow:var(--shadow-card);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted); letter-spacing:1px;">02 FARMING ACTIVITY</span>
+          <span class="badge badge-success" style="padding:4px 12px; font-size:11.5px;">월간 ${site.eventsCount}건 확인</span>
+        </div>
+        <h2 style="font-size:22px; font-weight:900; color:var(--text-primary); margin:0 0 20px 0;">영농활동 분석 및 타임라인</h2>
+
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:20px;">
+          <div style="background:var(--bg-card-subtle); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">작업자 탐지</div>
+            <div style="font-size:28px; font-weight:900; color:var(--text-primary);">18회</div>
+          </div>
+          <div style="background:var(--bg-card-subtle); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">농기계 탐지</div>
+            <div style="font-size:28px; font-weight:900; color:var(--text-primary);">8회</div>
+          </div>
+          <div style="background:var(--bg-card-subtle); padding:16px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">주요 작업 유형</div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-primary);">경운·파종·제초</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+          <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+            <div style="font-size:12px; font-weight:800; color:var(--text-primary); margin-bottom:12px;">작업 유형별 탐지</div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); text-align:left;">
+                  <th style="padding:6px 0;">영농행위</th>
+                  <th style="padding:6px 0;">탐지</th>
+                  <th style="padding:6px 0;">신뢰도</th>
+                  <th style="padding:6px 0;">판정</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 0; font-weight:800;">경운</td>
+                  <td>3회</td>
+                  <td>95%</td>
+                  <td><span class="badge badge-success" style="padding:2px 8px; font-size:11px;">확인</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 0; font-weight:800;">파종</td>
+                  <td>2회</td>
+                  <td>94%</td>
+                  <td><span class="badge badge-success" style="padding:2px 8px; font-size:11px;">확인</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:8px 0; font-weight:800;">제초</td>
+                  <td>4회</td>
+                  <td>90%</td>
+                  <td><span class="badge badge-success" style="padding:2px 8px; font-size:11px;">확인</span></td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0; font-weight:800;">수확</td>
+                  <td>0회</td>
+                  <td>-</td>
+                  <td><span class="badge badge-warning" style="padding:2px 8px; font-size:11px;">시기 전</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+            <div style="font-size:12px; font-weight:800; color:var(--text-primary); margin-bottom:12px;">월간 타임라인</div>
+            <ul style="list-style:none; padding:0; margin:0; font-size:12px;">
+              <li style="margin-bottom:10px; padding-left:14px; border-left:3px solid #10b981;">
+                <strong style="color:var(--text-primary); font-size:13px;">03.02 경운</strong>
+                <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">카메라 01 · 농기계 1대 · 신뢰도 96%</div>
+              </li>
+              <li style="margin-bottom:10px; padding-left:14px; border-left:3px solid #10b981;">
+                <strong style="color:var(--text-primary); font-size:13px;">03.06 파종</strong>
+                <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">카메라 02 · 작업자 2명 · 신뢰도 94%</div>
+              </li>
+              <li style="margin-bottom:10px; padding-left:14px; border-left:3px solid #10b981;">
+                <strong style="color:var(--text-primary); font-size:13px;">03.18 제초</strong>
+                <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">카메라 03 · 작업자 1명 · 신뢰도 91%</div>
+              </li>
+              <li style="padding-left:14px; border-left:3px solid #10b981;">
+                <strong style="color:var(--text-primary); font-size:13px;">03.28 농기계 작업</strong>
+                <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">남측 진입로 · 신뢰도 92%</div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="background:var(--bg-card-subtle); border:1px solid var(--border-color); border-radius:12px; padding:14px 16px;">
+          <div style="font-size:11.5px; font-weight:800; color:var(--text-muted); margin-bottom:4px;">판단 기준</div>
+          <p style="font-size:12px; color:var(--text-primary); margin:0; line-height:1.5;">
+            탐지 이벤트는 영상 속 작업자, 농기계, 작업 동작 및 시간적 연속성을 결합하여 생성합니다. 생육속도·작물건강도·수량은 평가하지 않습니다.
+          </p>
+        </div>
+      </div>
+
+      <!-- 📄 PAGE 03: VIDEO EVIDENCE AI 영상 증빙 -->
+      <div style="background:var(--bg-card, #ffffff); border:1px solid var(--border-color); border-radius:16px; padding:32px; margin-bottom:24px; box-shadow:var(--shadow-card);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted); letter-spacing:1px;">03 VIDEO EVIDENCE</span>
+          <span style="font-size:11px; font-weight:800; color:var(--text-muted);">CAMERA 03 · 2027.03.28 10:42</span>
+        </div>
+        <h2 style="font-size:22px; font-weight:900; color:var(--text-primary); margin:0 0 20px 0;">AI 영상 증빙</h2>
 
         <div style="display:grid; grid-template-columns:3fr 2fr; gap:16px; margin-bottom:20px;">
-          <div style="background:#edf4ef; border-radius:10px; padding:16px;">
-            <div style="font-size:11px; font-weight:800; color:#3d5a47; margin-bottom:8px;">📷 AI CAMERA 03 증빙 썸네일</div>
-            <div style="background:#111827; color:#ffffff; height:120px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">
-              [작업자 0.97] [농기계 0.92] 2027.03.28 10:42
+          <!-- Bounding box image simulation -->
+          <div style="background:#111827; border-radius:14px; position:relative; min-height:200px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:2px solid var(--sage-primary);">
+            <img src="cctv_sample_real.jpg" alt="AI CAM 03 현장 캡처" style="width:100%; height:100%; object-fit:cover; opacity:0.85;" onerror="this.style.display='none';" />
+            <div style="position:absolute; top:25%; left:20%; border:2px solid #10b981; background:rgba(16,185,129,0.25); padding:4px 8px; border-radius:4px; color:#ffffff; font-size:11px; font-weight:900;">
+              작업자 0.97
+            </div>
+            <div style="position:absolute; top:35%; left:45%; border:2px solid #10b981; background:rgba(16,185,129,0.25); padding:4px 8px; border-radius:4px; color:#ffffff; font-size:11px; font-weight:900;">
+              농기계 0.92
             </div>
           </div>
-          <div style="background:#edf4ef; border-radius:10px; padding:16px;">
-            <div style="font-size:10.5px; color:#526759; font-weight:800;">MONTHLY RESULT</div>
-            <div style="font-size:24px; font-weight:900; color:#10b981; margin:4px 0;">${site.status}</div>
-            <span class="badge ${site.statusBadge}" style="margin-bottom:8px;">영농의무 이행</span>
-            <p style="font-size:11px; color:#324739; margin:0;">신고작물과 실제 작물이 일치하며 주요 영농활동이 지속적으로 확인되었습니다.</p>
+
+          <!-- AI 판단 Box -->
+          <div style="background:var(--bg-card-subtle); border:1px solid var(--border-color); border-radius:14px; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="font-size:11px; font-weight:800; color:var(--text-muted); margin-bottom:4px;">AI 판단</div>
+              <h3 style="font-size:20px; font-weight:900; color:var(--text-primary); margin:0 0 10px 0;">농기계 작업</h3>
+              <span class="badge badge-success" style="padding:4px 10px; font-size:11.5px; margin-bottom:14px;">증빙 적합</span>
+            </div>
+
+            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+              <tbody>
+                <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:6px 0; color:var(--text-muted);">작업자</td><td style="text-align:right; font-weight:800;">2명</td></tr>
+                <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:6px 0; color:var(--text-muted);">농기계</td><td style="text-align:right; font-weight:800;">1대</td></tr>
+                <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:6px 0; color:var(--text-muted);">활동구역</td><td style="text-align:right; font-weight:800;">B구역</td></tr>
+                <tr><td style="padding:6px 0; color:var(--text-muted);">신뢰도</td><td style="text-align:right; font-weight:900; color:#10b981;">94%</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div style="border-top:2px dashed #a3b8aa; padding-top:16px;">
-          <h3 style="font-size:15px; font-weight:900; color:#1d3324; margin-bottom:10px;">01 EXECUTIVE SUMMARY 종합 평가</h3>
-          <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:16px;">
-            <div style="background:#ffffff; border:1px solid #a3b8aa; padding:10px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#526759;">작물 확인</div>
-              <strong style="font-size:16px; color:#1d3324;">${site.cropMatch ? '일치' : '불일치'}</strong>
-            </div>
-            <div style="background:#ffffff; border:1px solid #a3b8aa; padding:10px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#526759;">실경작면적</div>
-              <strong style="font-size:16px; color:#1d3324;">${site.areaRatio}%</strong>
-            </div>
-            <div style="background:#ffffff; border:1px solid #a3b8aa; padding:10px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#526759;">영농 이벤트</div>
-              <strong style="font-size:16px; color:#1d3324;">${site.eventsCount}건</strong>
-            </div>
-            <div style="background:#ffffff; border:1px solid #a3b8aa; padding:10px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#526759;">연속 무활동</div>
-              <strong style="font-size:16px; color:#1d3324;">${site.inactiveDays}일</strong>
-            </div>
-            <div style="background:#ffffff; border:1px solid #a3b8aa; padding:10px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#526759;">타용도 의심</div>
-              <strong style="font-size:16px; color:#10b981;">0건</strong>
-            </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+          <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+            <div style="font-size:12px; font-weight:800; color:var(--text-primary); margin-bottom:10px;">판단 근거</div>
+            <ul style="margin:0; padding-left:16px; font-size:12px; color:var(--text-primary); line-height:1.6;">
+              <li>작업자 2명 연속 탐지</li>
+              <li>농기계 이동 궤적 확인</li>
+              <li>경작구역 내 반복 작업 패턴</li>
+              <li>비농업적 적치 또는 주차 패턴 아님</li>
+            </ul>
+          </div>
+
+          <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+            <div style="font-size:12px; font-weight:800; color:var(--text-primary); margin-bottom:10px;">원본 무결성</div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <tbody>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:var(--text-muted);">영상 ID</td><td style="text-align:right; font-weight:800;">CAM03-0328-1042</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:var(--text-muted);">위치</td><td style="text-align:right; font-weight:800;">36.71, 126.55</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 0; color:var(--text-muted);">원본 보존</td><td style="text-align:right; font-weight:800; color:#10b981;">확인</td></tr>
+                <tr><td style="padding:6px 0; color:var(--text-muted);">검토상태</td><td style="text-align:right; font-weight:800;">담당자 승인</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div style="text-align:right; margin-top:20px;">
-          <button class="btn-header btn-terracotta" onclick="window.print()">
-            <i class="fa-solid fa-print"></i> 1-Click PDF 인쇄 / 다운로드
-          </button>
+        <div style="background:var(--bg-card-subtle); border:1px solid var(--border-color); border-radius:12px; padding:14px 16px;">
+          <div style="font-size:11.5px; font-weight:800; color:var(--text-muted); margin-bottom:4px;">설명가능성 원칙</div>
+          <p style="font-size:12px; color:var(--text-primary); margin:0; line-height:1.5;">
+            AI는 결과뿐 아니라 탐지 객체, 시간, 위치, 신뢰도 및 원본영상 연결정보를 함께 제공합니다. 행정담당자는 증빙을 열람한 뒤 인정·보류·오탐 처리할 수 있습니다.
+          </p>
         </div>
       </div>
     `;
